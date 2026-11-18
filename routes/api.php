@@ -2,12 +2,15 @@
 
 use App\Http\Controllers\Api\V1\AppointmentController;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\AutomationController;
 use App\Http\Controllers\Api\V1\CustomerController;
+use App\Http\Controllers\Api\V1\DashboardController;
 use App\Http\Controllers\Api\V1\EstimateController;
 use App\Http\Controllers\Api\V1\InvoiceController;
 use App\Http\Controllers\Api\V1\PaymentController;
 use App\Http\Controllers\Api\V1\ServiceCatalogController;
 use App\Http\Controllers\Api\V1\ServiceRequestController;
+use App\Http\Controllers\Api\V1\TeamController;
 use App\Http\Controllers\Api\V1\WorkOrderController;
 use Illuminate\Support\Facades\Route;
 
@@ -33,6 +36,17 @@ Route::prefix('v1')->group(function () {
 
     // Multi-Tenant Protected Business API
     Route::middleware(['auth:sanctum', 'company.context'])->group(function () {
+
+        // Dashboard Summary & Live Metrics
+        Route::get('dashboard/summary', [DashboardController::class, 'summary']);
+
+        // Team & Roster
+        Route::get('team', [TeamController::class, 'index']);
+        Route::post('team/invite', [TeamController::class, 'invite']);
+
+        // Business Automations
+        Route::get('automations', [AutomationController::class, 'index']);
+        Route::post('automations/{key}/toggle', [AutomationController::class, 'toggle']);
 
         // Customers
         Route::apiResource('customers', CustomerController::class);
