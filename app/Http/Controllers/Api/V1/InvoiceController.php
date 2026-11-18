@@ -39,6 +39,37 @@ class InvoiceController extends Controller
     {
         $companyId = app('currentCompanyId');
 
+        // Auto-populate from WorkOrder if items not provided
+        if ($request->has('work_order_id') && !$request->has('items')) {
+            $workOrder = WorkOrder::with(['items', 'serviceRequest.customer'])
+                ->where('company_id', $companyId)
+                ->findOrFail($request->input('work_order_id'));
+
+            $items = $workOrder->items->map(function ($it) {
+                return [
+                    'description' => $it->description,
+                    'quantity'    => (float) $it->quantity,
+                    'unit_price'  => (float) $it->unit_price,
+                ];
+            })->toArray();
+
+            if (empty($items)) {
+                $items = [
+                    [
+                        'description' => $workOrder->description ?: 'Completed Field Service Job',
+                        'quantity'    => 1,
+                        'unit_price'  => 150.00,
+                    ],
+                ];
+            }
+
+            $custId = $workOrder->serviceRequest?->customer_id;
+            $request->merge([
+                'customer_id' => $custId,
+                'items'       => $items,
+            ]);
+        }
+
         $data = $request->validate([
             'customer_id'     => ['required', 'integer', Rule::exists('customers', 'id')->where('company_id', $companyId)],
             'work_order_id'   => ['nullable', 'integer', Rule::exists('work_orders', 'id')->where('company_id', $companyId)],
