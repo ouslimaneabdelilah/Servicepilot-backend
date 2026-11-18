@@ -1,0 +1,112 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: servicepilot_app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+    environment:
+      APP_ENV: local
+      APP_KEY: ${APP_KEY}
+      APP_DEBUG: ${APP_DEBUG}
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: servicepilot
+      DB_USERNAME: servicepilot_user
+      DB_PASSWORD: servicepilot_password
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      QUEUE_CONNECTION: redis
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - servicepilot_net
+
+  nginx:
+    image: nginx:alpine
+    container_name: servicepilot_nginx
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    volumes:
+      - .:/var/www/html
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - app
+    networks:
+      - servicepilot_net
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: servicepilot_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: servicepilot
+      POSTGRES_USER: servicepilot_user
+      POSTGRES_PASSWORD: servicepilot_password
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - servicepilot_net
+
+  redis:
+    image: redis:7-alpine
+    container_name: servicepilot_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    networks:
+      - servicepilot_net
+
+  queue-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: servicepilot_queue_worker
+    restart: unless-stopped
+    working_dir: /var/www/html
+    command: php artisan queue:work redis --queue=critical,default,notifications --tries=3 --timeout=90
+    environment:
+      APP_ENV: local
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      REDIS_HOST: redis
+    depends_on:
+      - app
+      - redis
+      - postgres
+    networks:
+      - servicepilot_net
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: servicepilot_scheduler
+    restart: unless-stopped
+    working_dir: /var/www/html
+    command: php -d memory_limit=256M artisan schedule:work
+    depends_on:
+      - app
+    networks:
+      - servicepilot_net
+
+networks:
+  servicepilot_net:
+    driver: bridge
+
+volumes:
+  pgdata:
+  redisdata:
+

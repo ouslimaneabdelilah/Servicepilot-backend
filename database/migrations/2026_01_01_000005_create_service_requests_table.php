@@ -1,0 +1,3 @@
+<?php
+use Illuminate\Database\Migrations\Migration; use Illuminate\Database\Schema\Blueprint; use Illuminate\Support\Facades\Schema;
+return new class extends Migration {public function up():void{Schema::create('service_requests',function(Blueprint $t){$t->id();$t->foreignId('company_id')->constrained()->cascadeOnDelete();$t->foreignId('customer_id')->constrained()->restrictOnDelete();$t->string('title');$t->text('description')->nullable();$t->text('service_address');$t->string('status')->default('new');$t->string('priority')->default('normal');$t->timestamp('requested_at')->nullable();$t->timestamps();$t->index(['company_id','status']);});}public function down():void{Schema::dropIfExists('service_requests');}};

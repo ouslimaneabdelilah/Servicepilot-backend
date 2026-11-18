@@ -1,0 +1,3 @@
+<?php
+use Illuminate\Database\Migrations\Migration; use Illuminate\Database\Schema\Blueprint; use Illuminate\Support\Facades\Schema;
+return new class extends Migration {public function up():void{Schema::create('appointments',function(Blueprint $t){$t->id();$t->foreignId('company_id')->constrained()->cascadeOnDelete();$t->foreignId('service_request_id')->constrained()->cascadeOnDelete();$t->foreignId('technician_id')->nullable()->constrained('users')->nullOnDelete();$t->timestamp('starts_at');$t->timestamp('ends_at')->nullable();$t->string('status')->default('scheduled');$t->text('notes')->nullable();$t->timestamps();});}public function down():void{Schema::dropIfExists('appointments');}};
